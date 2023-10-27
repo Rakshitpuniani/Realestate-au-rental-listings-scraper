@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Interactive Map</title>
+    <!-- Include Leaflet CSS and JavaScript -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <style>
+        /* Set the map height */
+        #map {height: 500px;}
+    </style>
+</head>
+<body>
+    <!-- Create a div element to hold the map -->
+    <div id="map"></div>
+    <!-- ... (your existing HTML and Leaflet code) ... -->
+
+    <!-- ... (your existing HTML and Leaflet code) ... -->
+
+    <script>
+        // Create a map in the 'map' div
+        var map = L.map('map').setView([-33.8688, 151.2093], 11);
+
+        // Add an OpenStreetMap tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        // Function to add marker on click and send coordinates to Streamlit
+        function onMapClick(e, updateTagsCallback) {
+            var coordinates = { lat: e.latlng.lat, lng: e.latlng.lng };
+            // Perform reverse geocoding to get the suburb information
+            var geocodingUrl = 'https://nominatim.openstreetmap.org/reverse?format=json&lat=' + coordinates.lat + '&lon=' + coordinates.lng;
+
+             // Make a request to the geocoding service
+            fetch(geocodingUrl)
+                .then(response => response.json())
+                .then(data => {
+                    var suburb = data.address.suburb;
+                    if (suburb === undefined || suburb === null) {
+                        // If suburb is undefined or null, display lat and lng
+                        suburb = "Latitude: " + coordinates.lat + "<br>Longitude: " + coordinates.lng;
+                    }
+
+                    var popupContent = "Suburb: " + suburb;
+                    var marker = L.marker(e.latlng).addTo(map).bindPopup(popupContent).openPopup();
+
+                    // Send marker suburb (or lat and lng) to Streamlit using postMessage
+                    window.parent.postMessage(suburb, '*');
+                    updateTagsCallback(suburb);
+                })
+                .catch(error => {
+                    // Handle errors, for example, if the geocoding service is unavailable
+                    console.error("Error:", error);
+                });
+        }
+        // Add click event listener to the map
+        map.on('click', function(e) {
+            onMapClick(e, window.parent.updateTags);
+        });
+    </script>
+
+
+</body>
+</html>
